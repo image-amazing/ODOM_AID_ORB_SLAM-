@@ -1,11 +1,11 @@
 Thanks to Jingpang (https://github.com/jingpang), a perfect VINS framework! 
 This is an implementation of Odometer aided Visual Odometry based on ORB-SLAM2(https://github.com/raulmur/ORB_SLAM2) with preintegration theory.
 
-###Related Publications:
+### Related Publications:
 * **Gyro-Aided Camera-Odometer Online Calibration and Localization**, *Dongxuan Li, Kevin Eckenhoff and Guoquan Huang*, ACC '17
 
 # Future Work
-This code has been tested on the MIT-Stata Center dataset, with a good preformance. Still trying to merge gyro or imu into this work.**East Sphere**.
+This code has been tested on the MIT-Stata Center dataset, with a good preformance. Still trying to merge gyro or imu into this work.
 
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
