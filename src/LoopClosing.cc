@@ -86,14 +86,12 @@ void LoopClosing::Run()
 	      {
 		  // Compute similarity transformation [sR|t]
 		  // In the stereo/RGBD case s=1
-#ifndef ODOM_AID_VO_MODE
 		  if(ComputeSim3())
 		  {
 
 		      // Perform loop fusion and pose graph optimization
 		      CorrectLoop();
 		  }
-#endif
 	      }
 	      
             }
@@ -601,7 +599,7 @@ void LoopClosing::CorrectLoop()
     mbFinishedGBA = false;
     mbStopGBA = false;
     mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->mnId);
-
+    
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();    
 

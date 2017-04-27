@@ -696,9 +696,6 @@ int Optimizer::PoseOptimization(Frame *pFrame, KeyFrame* pLastKF, const OdomPrei
     // Set Frame vertex PVR/Bias
     g2o::VertexNavStatePR * vNSFPVR = new g2o::VertexNavStatePR();
     {
-      cout << "cur " << endl;
-      cout << pFrame->GetNavState().Get_P() << endl;
-      cout << pFrame->GetNavState().Get_RotMatrix() << endl;
         vNSFPVR->setEstimate(pFrame->GetNavState());
         vNSFPVR->setId(FramePVRId);
         vNSFPVR->setFixed(false);
@@ -708,9 +705,6 @@ int Optimizer::PoseOptimization(Frame *pFrame, KeyFrame* pLastKF, const OdomPrei
     // Set KeyFrame vertex PVR/Bias
     g2o::VertexNavStatePR * vNSKFPVR = new g2o::VertexNavStatePR();
     {
-      cout << "last " << endl;
-      cout << pLastKF->GetNavState().Get_P() << endl;
-      cout << pLastKF->GetNavState().Get_RotMatrix() << endl;
         vNSKFPVR->setEstimate(pLastKF->GetNavState());
         vNSKFPVR->setId(LastKFPVRId);
         vNSKFPVR->setFixed(true);
@@ -725,8 +719,6 @@ int Optimizer::PoseOptimization(Frame *pFrame, KeyFrame* pLastKF, const OdomPrei
         eNSPVR->setMeasurement(odompreint);
 
         Matrix6d InvCovPVR = odompreint.getCovPPhi().inverse() ;
-	cout << "info " << endl;
-	cout << InvCovPVR << endl;
         eNSPVR->setInformation(InvCovPVR);
 
         const float thHuberNavStatePVR = sqrt(21.666);
@@ -840,10 +832,10 @@ int Optimizer::PoseOptimization(Frame *pFrame, KeyFrame* pLastKF, const OdomPrei
     {
         // Reset estimate for vertex
         vNSFPVR->setEstimate(pFrame->GetNavState());
-cout << "cao" << endl;
+
         optimizer.initializeOptimization(0);
         optimizer.optimize(its[it]);
-cout << "ni" << endl;
+
         nBad=0;
         for(size_t i=0, iend=vpEdgesStereo.size(); i<iend; i++)
         {

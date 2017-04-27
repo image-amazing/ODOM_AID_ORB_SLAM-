@@ -55,7 +55,7 @@ public:
 
     void computeError();
 
-//     virtual void linearizeOplus();
+    virtual void linearizeOplus();
 
 };
 
@@ -111,7 +111,7 @@ public:
     }
 
     //
-//     virtual void linearizeOplus();
+    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_, const double& bf_,
                    const Matrix3d& Rbo_, const Vector3d& Pbo_) {
@@ -183,7 +183,7 @@ public:
     }
 
     //
-//     virtual void linearizeOplus();
+    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_, const double& bf_,
                    const Matrix3d& Rbo_, const Vector3d& Pbo_, const Vector3d& Pw_) {
@@ -224,7 +224,7 @@ public:
 
     void computeError();
 
-//     virtual void linearizeOplus();
+    virtual void linearizeOplus();
 
 };
 

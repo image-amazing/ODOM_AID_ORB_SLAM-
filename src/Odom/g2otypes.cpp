@@ -50,247 +50,171 @@ void EdgeNavStatePR::computeError()
 
 }
 
-// void EdgeNavStatePR::linearizeOplus()
-// {
-//     //
-//     const VertexNavStatePR* vPVRi = static_cast<const VertexNavStatePR*>(_vertices[0]);
-//     const VertexNavStatePR* vPVRj = static_cast<const VertexNavStatePR*>(_vertices[1]);
-// 
-//     // terms need to computer error in vertex i, except for bias error
-//     const NavState& NSPVRi = vPVRi->estimate();
-//     Vector3d Pi = NSPVRi.Get_P();
-//     Matrix3d Ri = NSPVRi.Get_RotMatrix();
-// 
-//     // terms need to computer error in vertex j, except for bias error
-//     const NavState& NSPVRj = vPVRj->estimate();
-//     Vector3d Pj = NSPVRj.Get_P();
-//     Matrix3d Rj = NSPVRj.Get_RotMatrix();
-// 
-//     // Odom Preintegration measurement
-//     const OdomPreintegrator& M = _measurement;
-//     double dTij = M.getDeltaTime();   // Delta Time
-//     double dT2 = dTij*dTij;
-// 
-//     // some temp variable
-//     Matrix3d I3x3 = Matrix3d::Identity();   // I_3x3
-//     Matrix3d O3x3 = Matrix3d::Zero();       // 0_3x3
-//     Matrix3d RiT = Ri.transpose();          // Ri^T
-//     Matrix3d RjT = Rj.transpose();          // Rj^T
-//     Vector3d rPhiij = _error.segment<3>(3); // residual of rotation, rPhiij
-//     Matrix3d JrInv_rPhi = Sophus::SO3::JacobianRInv(rPhiij);    // inverse right jacobian of so3 term #rPhiij#
-// 
-//     // 1.
-//     // increment is the same as Forster 15'RSS
-//     // pi = pi + Ri*dpi,    pj = pj + Rj*dpj
-//     // vi = vi + dvi,       vj = vj + dvj
-//     // Ri = Ri*Exp(dphi_i), Rj = Rj*Exp(dphi_j)
-//     //      Note: the optimized bias term is the 'delta bias'
-//     // dBgi = dBgi + dbgi_update,    dBgj = dBgj + dbgj_update
-//     // dBai = dBai + dbai_update,    dBaj = dBaj + dbaj_update
-// 
-//     // 2.
-//     // 9-Dim error vector order in PVR:
-//     // position-velocity-rotation
-//     // rPij - rVij - rPhiij
-//     //      Jacobian row order:
-//     // J_rPij_xxx
-//     // J_rVij_xxx
-//     // J_rPhiij_xxx
-// 
-//     // 3.
-//     // order in 'update_' in PVR
-//     // Vertex_i : dPi, dVi, dPhi_i
-//     // Vertex_j : dPj, dVj, dPhi_j
-//     // 6-Dim error vector order in Bias:
-//     // dBiasg_i - dBiasa_i
-// 
-//     // 4.
-//     // For Vertex_PVR_i
-//     Matrix<double,6,6> JPVRi;
-//     JPVRi.setZero();
-// 
-//     // 4.1
-//     // J_rPij_xxx_i for Vertex_PVR_i
-//     JPVRi.block<3,3>(0,0) = - I3x3;      //J_rP_dpi
-//     JPVRi.block<3,3>(0,3) = - RiT*dTij;  //J_rP_dvi
-//     //JPVRi.block<3,3>(0,6) = SO3Calc::skew( RiT*(Pj-Pi-Vi*dTij-0.5*GravityVec*dT2)  );    //J_rP_dPhi_i
-//     JPVRi.block<3,3>(0,6) = Sophus::SO3::hat( RiT*(Pj-Pi-Vi*dTij-0.5*GravityVec*dT2)  );    //J_rP_dPhi_i
-// 
-//     // 4.2
-//     // J_rVij_xxx_i for Vertex_PVR_i
-//     JPVRi.block<3,3>(3,0) = O3x3;    //dpi
-//     JPVRi.block<3,3>(3,3) = - RiT;    //dvi
-//     //JPVRi.block<3,3>(3,6) = SO3Calc::skew( RiT*(Vj-Vi-GravityVec*dTij) );    //dphi_i
-//     JPVRi.block<3,3>(3,6) = Sophus::SO3::hat( RiT*(Vj-Vi-GravityVec*dTij) );    //dphi_i
-// 
-//     // 4.3
-//     // J_rPhiij_xxx_i for Vertex_PVR_i
-//     //Matrix3d ExprPhiijTrans = SO3Calc::Expmap(rPhiij).transpose();  //Exp( rPhi )^T
-//     //Matrix3d JrBiasGCorr = SO3Calc::JacobianR(J_rPhi_dbg*dBgi);     //Jr( M.J_rPhi_bg * dBgi )
-//     Matrix3d ExprPhiijTrans = Sophus::SO3::exp(rPhiij).inverse().matrix();
-//     Matrix3d JrBiasGCorr = Sophus::SO3::JacobianR(J_rPhi_dbg*dBgi);
-//     JPVRi.block<3,3>(6,0) = O3x3;    //dpi
-//     JPVRi.block<3,3>(6,3) = O3x3;    //dvi
-//     JPVRi.block<3,3>(6,6) = - JrInv_rPhi * RjT * Ri;    //dphi_i
-// 
-// 
-//     // 5.
-//     // For Vertex_PVR_j
-//     Matrix<double,9,9> JPVRj;
-//     JPVRj.setZero();
-// 
-//     // 5.1
-//     // J_rPij_xxx_j for Vertex_PVR_j
-//     JPVRj.block<3,3>(0,0) = RiT*Rj;  //dpj
-//     JPVRj.block<3,3>(0,3) = O3x3;    //dvj
-//     JPVRj.block<3,3>(0,6) = O3x3;    //dphi_j
-// 
-//     // 5.2
-//     // J_rVij_xxx_j for Vertex_PVR_j
-//     JPVRj.block<3,3>(3,0) = O3x3;    //dpj
-//     JPVRj.block<3,3>(3,3) = RiT;    //dvj
-//     JPVRj.block<3,3>(3,6) = O3x3;    //dphi_j
-// 
-//     // 5.3
-//     // J_rPhiij_xxx_j for Vertex_PVR_j
-//     JPVRj.block<3,3>(6,0) = O3x3;    //dpj
-//     JPVRj.block<3,3>(6,3) = O3x3;    //dvj
-//     JPVRj.block<3,3>(6,6) = JrInv_rPhi;    //dphi_j
-// 
-// 
-//     // 6.
-//     // For Vertex_Bias_i
-//     Matrix<double,9,6> JBiasi;
-//     JBiasi.setZero();
-// 
-//     // 5.1
-//     // J_rPij_xxx_j for Vertex_Bias_i
-//     JBiasi.block<3,3>(0,0) = - M.getJPBiasg();     //J_rP_dbgi
-//     JBiasi.block<3,3>(0,3) = - M.getJPBiasa();     //J_rP_dbai
-// 
-//     // J_rVij_xxx_j for Vertex_Bias_i
-//     JBiasi.block<3,3>(3,0) = - M.getJVBiasg();    //dbg_i
-//     JBiasi.block<3,3>(3,3) = - M.getJVBiasa();    //dba_i
-// 
-//     // J_rPhiij_xxx_j for Vertex_Bias_i
-//     JBiasi.block<3,3>(6,0) = - JrInv_rPhi * ExprPhiijTrans * JrBiasGCorr * J_rPhi_dbg;    //dbg_i
-//     JBiasi.block<3,3>(6,3) = O3x3;    //dba_i
-// 
-//     // Evaluate _jacobianOplus
-//     _jacobianOplus[0] = JPVRi;
-//     _jacobianOplus[1] = JPVRj;
-//     _jacobianOplus[2] = JBiasi;
-// }
+void EdgeNavStatePR::linearizeOplus()
+{
+    //
+    const VertexNavStatePR* vPVRi = static_cast<const VertexNavStatePR*>(_vertices[0]);
+    const VertexNavStatePR* vPVRj = static_cast<const VertexNavStatePR*>(_vertices[1]);
 
-// void EdgeNavStatePRStereoPointXYZ::linearizeOplus()
-// {
-//     const VertexSBAPointXYZ* vPoint = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);
-//     const VertexNavStatePVR* vNavState = static_cast<const VertexNavStatePVR*>(_vertices[1]);
-// 
-//     const NavState& ns = vNavState->estimate();
-//     Matrix3d Rwb = ns.Get_RotMatrix();
-//     Vector3d Pwb = ns.Get_P();
-//     const Vector3d& Pw = vPoint->estimate();
-// 
-//     Matrix3d Rcb = Rbc.transpose();
-//     Vector3d Pc = Rcb * Rwb.transpose() * (Pw - Pwb) - Rcb * Pbc;
-// 
-//     double x = Pc[0];
-//     double y = Pc[1];
-//     double z = Pc[2];
-// 
-//     // Jacobian of camera projection
-//     Matrix<double,2,3> Maux;
-//     Maux.setZero();
-//     Maux(0,0) = fx;
-//     Maux(0,1) = 0;
-//     Maux(0,2) = -x/z*fx;
-//     Maux(1,0) = 0;
-//     Maux(1,1) = fy;
-//     Maux(1,2) = -y/z*fy;
-//     Matrix<double,2,3> Jpi = Maux/z;
-// 
-//     // error = obs - pi( Pc )
-//     // Pw <- Pw + dPw,          for Point3D
-//     // Rwb <- Rwb*exp(dtheta),  for NavState.R
-//     // Pwb <- Pwb + Rwb*dPwb,   for NavState.P
-// 
-//     // Jacobian of error w.r.t Pw
-//     _jacobianOplusXi = - Jpi * Rcb * Rwb.transpose();
-// 
-//     // Jacobian of Pc/error w.r.t dPwb
-//     //Matrix3d J_Pc_dPwb = -Rcb;
-//     Matrix<double,2,3> JdPwb = - Jpi * (-Rcb);
-//     // Jacobian of Pc/error w.r.t dRwb
-//     Vector3d Paux = Rcb*Rwb.transpose()*(Pw-Pwb);
-//     //Matrix3d J_Pc_dRwb = Sophus::SO3::hat(Paux) * Rcb;
-//     Matrix<double,2,3> JdRwb = - Jpi * (Sophus::SO3::hat(Paux) * Rcb);
-// 
-//     // Jacobian of Pc w.r.t NavState
-//     // order in 'update_': dP, dV, dPhi
-//     Matrix<double,2,9> JNavState = Matrix<double,2,9>::Zero();
-//     JNavState.block<2,3>(0,0) = JdPwb;
-//     //JNavState.block<2,3>(0,3) = 0;
-//     JNavState.block<2,3>(0,6) = JdRwb;
-//     //JNavState.block<2,3>(0,9) = 0;
-//     //JNavState.block<2,3>(0,12) = 0;
-// 
-//     // Jacobian of error w.r.t NavState
-//     _jacobianOplusXj = JNavState;
-// }
+    // terms need to computer error in vertex i, except for bias error
+    const NavState& NSPVRi = vPVRi->estimate();
+    Vector3d Pi = NSPVRi.Get_P();
+    Matrix3d Ri = NSPVRi.Get_RotMatrix();
 
-// void EdgeNavStatePVRPointXYZOnlyPose::linearizeOplus()
-// {
-//     const VertexNavStatePVR* vNSPVR = static_cast<const VertexNavStatePVR*>(_vertices[0]);
-// 
-//     const NavState& ns = vNSPVR->estimate();
-//     Matrix3d Rwb = ns.Get_RotMatrix();
-//     Vector3d Pwb = ns.Get_P();
-//     //const Vector3d& Pw = vPoint->estimate();
-// 
-//     Matrix3d Rcb = Rbc.transpose();
-//     Vector3d Pc = Rcb * Rwb.transpose() * (Pw - Pwb) - Rcb * Pbc;
-// 
-//     double x = Pc[0];
-//     double y = Pc[1];
-//     double z = Pc[2];
-// 
-//     // Jacobian of camera projection
-//     Matrix<double,2,3> Maux;
-//     Maux.setZero();
-//     Maux(0,0) = fx;
-//     Maux(0,1) = 0;
-//     Maux(0,2) = -x/z*fx;
-//     Maux(1,0) = 0;
-//     Maux(1,1) = fy;
-//     Maux(1,2) = -y/z*fy;
-//     Matrix<double,2,3> Jpi = Maux/z;
-// 
-//     // error = obs - pi( Pc )
-//     // Pw <- Pw + dPw,          for Point3D
-//     // Rwb <- Rwb*exp(dtheta),  for NavState.R
-//     // Pwb <- Pwb + Rwb*dPwb,   for NavState.P
-// 
-//     // Jacobian of Pc/error w.r.t dPwb
-//     //Matrix3d J_Pc_dPwb = -Rcb;
-//     Matrix<double,2,3> JdPwb = - Jpi * (-Rcb);
-//     // Jacobian of Pc/error w.r.t dRwb
-//     Vector3d Paux = Rcb*Rwb.transpose()*(Pw-Pwb);
-//     //Matrix3d J_Pc_dRwb = Sophus::SO3::hat(Paux) * Rcb;
-//     Matrix<double,2,3> JdRwb = - Jpi * (Sophus::SO3::hat(Paux) * Rcb);
-// 
-//     // Jacobian of Pc w.r.t NavStatePVR
-//     // order in 'update_': dP, dV, dPhi
-//     Matrix<double,2,9> JNavState = Matrix<double,2,9>::Zero();
-//     JNavState.block<2,3>(0,0) = JdPwb;
-//     //JNavState.block<2,3>(0,3) = 0;
-//     JNavState.block<2,3>(0,6) = JdRwb;
-//     //JNavState.block<2,3>(0,9) = 0;
-//     //JNavState.block<2,3>(0,12) = 0;
-// 
-//     // Jacobian of error w.r.t NavStatePVR
-//     _jacobianOplusXi = JNavState;
-// }
+    // terms need to computer error in vertex j, except for bias error
+    const NavState& NSPVRj = vPVRj->estimate();
+    Vector3d Pj = NSPVRj.Get_P();
+    Matrix3d Rj = NSPVRj.Get_RotMatrix();
+
+    // Odom Preintegration measurement
+    const OdomPreintegrator& M = _measurement;
+    double dTij = M.getDeltaTime();   // Delta Time
+    double dT2 = dTij*dTij;
+
+    // some temp variable
+    Matrix3d I3x3 = Matrix3d::Identity();   // I_3x3
+    Matrix3d O3x3 = Matrix3d::Zero();       // 0_3x3
+    Matrix3d RiT = Ri.transpose();          // Ri^T
+    Matrix3d RjT = Rj.transpose();          // Rj^T
+    Vector3d rPhiij = _error.segment<3>(3); // residual of rotation, rPhiij
+    Matrix3d JrInv_rPhi = OdomPreintegrator::JacobianRInv(rPhiij);    // inverse right jacobian of so3 term #rPhiij#
+
+    // For Vertex_PR_i
+    Matrix<double,6,6> JPVRi;
+    JPVRi.setZero();
+
+    // J_rPij_xxx_i for Vertex_PR_i
+    JPVRi.block<3,3>(0,0) = - RiT;    //dpi
+    JPVRi.block<3,3>(0,3) = SO3Type::hat( RiT*(Pj-Pi) );    //dphi_i
+
+    // J_rPhiij_xxx_i for Vertex_PR_i
+    Matrix3d ExprPhiijTrans = SO3Type::exp(rPhiij).inverse().matrix();
+    JPVRi.block<3,3>(3,0) = O3x3;    //dpi
+    JPVRi.block<3,3>(3,3) = - JrInv_rPhi * RjT * Ri;    //dphi_i
+
+    // For Vertex_PR_j
+    Matrix<double,6,6> JPVRj;
+    JPVRj.setZero();
+
+    // J_rVij_xxx_j for Vertex_PVR_j
+    JPVRj.block<3,3>(0,0) = RiT;    //dpj
+    JPVRj.block<3,3>(0,3) = O3x3;    //dphi_j
+
+    // J_rPhiij_xxx_j for Vertex_PVR_j
+    JPVRj.block<3,3>(3,0) = O3x3;    //dpj
+    JPVRj.block<3,3>(3,3) = JrInv_rPhi;    //dphi_j
+
+    // Evaluate _jacobianOplus
+    _jacobianOplusXj = JPVRi;
+    _jacobianOplusXj = JPVRj;
+}
+
+void EdgeNavStatePRStereoPointXYZ::linearizeOplus()
+{
+    const VertexSBAPointXYZ* vPoint = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);
+    const VertexNavStatePR* vNavState = static_cast<const VertexNavStatePR*>(_vertices[1]);
+
+    const NavState& ns = vNavState->estimate();
+    Matrix3d Rwo = ns.Get_RotMatrix();
+    Vector3d Pwo = ns.Get_P();
+    const Vector3d& Pw = vPoint->estimate();
+
+    Matrix3d Rco = Rbo.transpose();
+    Vector3d Pc = Rco * Rwo.transpose() * (Pw - Pwo) - Rco * Pbo;
+
+    double x = Pc[0];
+    double y = Pc[1];
+    double z = Pc[2];
+    double z_2 = z*z;
+
+    Matrix<double,3,3> Maux;
+    Maux.setZero();
+    Maux(0,0) = fx/z;
+    Maux(0,1) = 0;
+    Maux(0,2) = -x/z_2*fx;
+    Maux(1,0) = 0;
+    Maux(1,1) = fy/z;
+    Maux(1,2) = -y/z_2*fy;
+    Maux(2,0) = Maux(0,0);
+    Maux(2,1) = Maux(0,1);
+    Maux(2,2) = Maux(0,2) + bf/z_2;
+    Matrix<double,3,3> Jpi = Maux;
+    
+    // error = obs - pi( Pc, bf )
+    // Pw <- Pw + dPw,          for Point3D
+    // Rwb <- Rwb*exp(dtheta),  for NavState.R
+    // Pwb <- Pwb + Rwb*dPwb,   for NavState.P
+
+    _jacobianOplusXi = - Jpi * Rco * Rwo.transpose();
+    
+    // Jacobian of Pc/error w.r.t dPwb
+    //Matrix3d J_Pc_dPwb = -Rcb;
+    Matrix<double,3,3> JdPwb = - Jpi * (-Rco);
+    // Jacobian of Pc/error w.r.t dRwb
+    Vector3d Paux = Rco*Rwo.transpose()*(Pw-Pwo);
+    Matrix<double,3,3> JdRwb = - Jpi * (SO3Type::hat(Paux) * Rco);
+
+    // Jacobian of Pc w.r.t NavState
+    // order in 'update_': dP, dPhi
+    Matrix<double,3,6> JNavState = Matrix<double,3,6>::Zero();
+    JNavState.block<3,3>(0,0) = JdPwb;
+    JNavState.block<3,3>(0,3) = JdRwb;
+
+    // Jacobian of error w.r.t NavState
+    _jacobianOplusXj = JNavState;
+}
+
+void EdgeNavStatePRStereoPointXYZOnlyPose::linearizeOplus()
+{
+    const VertexNavStatePR* vNSPVR = static_cast<const VertexNavStatePR*>(_vertices[0]);
+
+    const NavState& ns = vNSPVR->estimate();
+    Matrix3d Rwo = ns.Get_RotMatrix();
+    Vector3d Pwo = ns.Get_P();
+
+    Matrix3d Rco = Rbo.transpose();
+    Vector3d Pc = Rco * Rwo.transpose() * (Pw - Pwo) - Rco * Pbo;
+
+    double x = Pc[0];
+    double y = Pc[1];
+    double z = Pc[2];
+    double z_2 = z*z;
+
+    // Jacobian of camera projection
+    Matrix<double,3,3> Maux;
+    Maux.setZero();
+    Maux(0,0) = fx/z;
+    Maux(0,1) = 0;
+    Maux(0,2) = -x/z_2*fx;
+    Maux(1,0) = 0;
+    Maux(1,1) = fy/z;
+    Maux(1,2) = -y/z_2*fy;
+    Maux(2,0) = Maux(0,0);
+    Maux(2,1) = Maux(0,1);
+    Maux(2,2) = Maux(0,2) + bf/z_2;
+    Matrix<double,3,3> Jpi = Maux;
+
+    // error = obs - pi( Pc, bf )
+    // Pw <- Pw + dPw,          for Point3D
+    // Rwb <- Rwb*exp(dtheta),  for NavState.R
+    // Pwb <- Pwb + Rwb*dPwb,   for NavState.P
+
+    // Jacobian of Pc/error w.r.t dPwb
+    //Matrix3d J_Pc_dPwb = -Rcb;
+    Matrix<double,3,3> JdPwb = - Jpi * (-Rco);
+    // Jacobian of Pc/error w.r.t dRwb
+    Vector3d Paux = Rco*Rwo.transpose()*(Pw-Pwo);
+    Matrix<double,3,3> JdRwb = - Jpi * (SO3Type::hat(Paux) * Rco);
+
+    // Jacobian of Pc w.r.t NavStatePVR
+    // order in 'update_': dP, dPhi
+    Matrix<double,3,6> JNavState = Matrix<double,3,6>::Zero();
+    JNavState.block<3,3>(0,0) = JdPwb;
+    JNavState.block<3,3>(0,3) = JdRwb;
+
+    // Jacobian of error w.r.t NavStatePVR
+    _jacobianOplusXi = JNavState;
+}
 
 //--------------------------------------
 
@@ -308,17 +232,6 @@ void EdgeNavStatePrior::computeError()
     // r(P) + r(R)
     Vector6d err = Vector6d::Zero();
 
-//    // err_P = P - P_prior
-//    err.segment<3>(0) = nsest.Get_P() - nsprior.Get_P();
-//    // err_V = V - V_prior
-//    err.segment<3>(3) = nsest.Get_V() - nsprior.Get_V();
-//    // err_R = log (R * R_prior^-1)
-//    err.segment<3>(6) = (nsest.Get_R() * nsprior.Get_R().inverse()).log();
-//    // err_bg = (bg+dbg) - (bg_prior+dbg_prior)
-//    err.segment<3>(9) = (nsest.Get_BiasGyr() + nsest.Get_dBias_Gyr()) - (nsprior.Get_BiasGyr() + nsprior.Get_dBias_Gyr());
-//    // err_ba = (ba+dba) - (ba_prior+dba_prior)
-//    err.segment<3>(12) = (nsest.Get_BiasAcc() + nsest.Get_dBias_Acc()) - (nsprior.Get_BiasAcc() + nsprior.Get_dBias_Acc());
-
     // err_P = P - P_prior
     err.segment<3>(0) = nsprior.Get_P() - nsest.Get_P();
     // err_R = log (R * R_prior^-1)
@@ -330,36 +243,17 @@ void EdgeNavStatePrior::computeError()
     //std::cout<<"prior edge error: "<<std::endl<<_error.transpose()<<std::endl;
 }
 
-// void EdgeNavStatePrior::linearizeOplus()
-// {
-//     // 1.
-//     // increment is the same as Forster 15'RSS
-//     // pi = pi + Ri*dpi
-//     // vi = vi + dvi
-//     // Ri = Ri*Exp(dphi_i)
-//     //      Note: the optimized bias term is the 'delta bias'
-//     // dBgi = dBgi + dbgi_update
-//     // dBai = dBai + dbai_update
-// 
-//     // Estimated NavState
-//     const VertexNavState* v = static_cast<const VertexNavState*>(_vertices[0]);
-//     const NavState& nsest = v->estimate();
-// 
-// //    _jacobianOplusXi.block<3,3>(0,0) = nsest.Get_RotMatrix();
-// //    _jacobianOplusXi.block<3,3>(3,3) = Matrix3d::Identity();
-// //    _jacobianOplusXi.block<3,3>(6,6) = Sophus::SO3::JacobianLInv( _error.segment<3>(6) ) * nsest.Get_RotMatrix();
-// //    _jacobianOplusXi.block<3,3>(9,9) = Matrix3d::Identity();
-// //    _jacobianOplusXi.block<3,3>(12,12) = Matrix3d::Identity();
-// 
-//     _jacobianOplusXi.block<3,3>(0,0) = - nsest.Get_RotMatrix();
-//     _jacobianOplusXi.block<3,3>(3,3) = - Matrix3d::Identity();
-//     _jacobianOplusXi.block<3,3>(6,6) = Sophus::SO3::JacobianRInv( _error.segment<3>(6) );
-//     _jacobianOplusXi.block<3,3>(9,9) = - Matrix3d::Identity();
-//     _jacobianOplusXi.block<3,3>(12,12) = - Matrix3d::Identity();
-// 
-//     //Debug log
-//     //std::cout<<"prior edge jacobian: "<<std::endl<<_jacobianOplusXi<<std::endl;
-// }
+void EdgeNavStatePrior::linearizeOplus()
+{
+
+    // Estimated NavState
+    const VertexNavStatePR* v = static_cast<const VertexNavStatePR*>(_vertices[0]);
+    const NavState& nsest = v->estimate();
+
+    _jacobianOplusXi.block<3,3>(0,0) = - nsest.Get_RotMatrix();
+    _jacobianOplusXi.block<3,3>(3,3) = OdomPreintegrator::JacobianRInv( _error.segment<3>(3) );
+
+}
 
 /**
  * @brief VertexGravityW::VertexGravityW
