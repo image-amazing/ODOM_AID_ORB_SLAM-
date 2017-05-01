@@ -1,4 +1,4 @@
-Thanks to Jingpang (https://github.com/jingpang), a perfect VINS framework! 
+Thank you for Jingpang (https://github.com/jingpang) 's framework, a perfect job! 
 This is an implementation of Odometer aided Visual Odometry based on ORB-SLAM2(https://github.com/raulmur/ORB_SLAM2) with preintegration theory. The current version is still not able to run real-time.
 
 ### Related Publications:
